@@ -85,13 +85,18 @@ class Bird:
         引数2 screen：画面Surface
         """
         sum_mv = [0, 0]
+        
         for k, mv in __class__.delta.items():
             if key_lst[k]:
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
         self.rct.move_ip(sum_mv)
+        
+        
         if check_bound(self.rct) != (True, True):
             self.rct.move_ip(-sum_mv[0], -sum_mv[1])
+        
+        
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.img = self.imgs[tuple(sum_mv)]
         screen.blit(self.img, self.rct)
@@ -118,6 +123,7 @@ class Bomb:
         self.rct.center = random.randint(0, WIDTH), random.randint(0, HEIGHT)
         self.vx, self.vy = random.choice([-5, +5]), random.choice([-5, +5])
 
+    
     def update(self, screen: pg.Surface):
         """
         爆弾を速度ベクトルself.vx, self.vyに基づき移動させる
@@ -142,11 +148,11 @@ class Beam:
         angle = math.degrees(math.atan2(-vy, vx))
         self.img = pg.transform.rotozoom(self.img, angle, 1.0)
         self.rct.width, self.rct.height = self.img.get_size()
-
         self.rct.centerx = bird.rct.centerx + bird.rct.width / 2
         self.rct.centery = bird.rct.centery
-
         self.vx, self.vy = vx*5, vy*5 #速度を５倍に変更
+
+
     def update(self, screen: pg.Surface):
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
@@ -163,6 +169,7 @@ class Explosion(pg.sprite.Sprite):
         self.image = self.image_list[self.index]
         self.rect = self.image.get_rect(center=center)
         self.life = 30  # 爆発時間
+
         
     def update(self, screen: pg.Surface):
         self.life -= 1
@@ -187,6 +194,8 @@ def main():
 
     clock = pg.time.Clock()
     tmr = 0
+
+
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -196,6 +205,7 @@ def main():
         
         screen.blit(bg_img, [0, 0])
 
+
         for bomb in bombs:
             if bird.rct.colliderect(bomb.rct):
                 # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
@@ -204,6 +214,7 @@ def main():
                 time.sleep(1)
                 return
             
+
         for i, bomb in enumerate(bombs):    
             if beam is not None and beam.rct.colliderect(bomb.rct):
                 beam = None
@@ -215,12 +226,14 @@ def main():
 
         key_lst = pg.key.get_pressed()
         bird.update(key_lst, screen)
+
+
         for bomb in bombs:
             bomb.update(screen)
         if beam is not None:
             beam.update(screen)
-        explosions.update(screen)
-        explosions.draw(screen)
+        explosions.update(screen)  
+        explosions.draw(screen)  #爆発画像の表示
         pg.display.update()
         tmr += 1
         clock.tick(50)
