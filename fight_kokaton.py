@@ -2,7 +2,7 @@ import os
 import random
 import sys
 import time
-
+import math
 import pygame as pg
 
 
@@ -66,6 +66,8 @@ class Bird:
         self.img = self.imgs[(+5, 0)] #右向きこうかとんをデフォ画像にする
         self.rct = self.img.get_rect()
         self.rct.center = xy
+        self.dire = (+5, 0)
+
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -133,13 +135,41 @@ class Beam:
     def __init__(self, bird: Bird):
         self.img = pg.image.load(f"{MAIN_DIR}/fig/beam.png")
         self.rct = self.img.get_rect()
-        self.rct.centery = bird.rct.centery #こうかとんの中心座標取得
-        self.rct.centerx = bird.rct.centerx + bird.rct.width/2
-        self.vx,self.vy = +5, 0
+        # self.rct.centery = bird.rct.centery #こうかとんの中心座標取得
+        # self.rct.centerx = bird.rct.centerx + bird.rct.width/2
+        # self.vx,self.vy = +5, 0
+        vx, vy = bird.dire
+        angle = math.degrees(math.atan2(-vy, vx))
+        self.img = pg.transform.rotozoom(self.img, angle, 1.0)
+        self.rct.width, self.rct.height = self.img.get_size()
 
+        self.rct.centerx = bird.rct.centerx + bird.rct.width / 2
+        self.rct.centery = bird.rct.centery
+
+        self.vx, self.vy = vx*5, vy*5 #速度を５倍に変更
     def update(self, screen: pg.Surface):
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
+
+
+class Explosion(pg.sprite.Sprite):
+    def __init__(self,center): 
+        super().__init__()
+        self.image_list = [pg.image.load("ex03/fig/explosion.gif"),
+                           pg.image.load("ex03/fig/explosion.gif").convert()  # flipした画像を追加
+                           ]
+        self.image_list[1] = pg.transform.flip(self.image_list[1], True, False)
+        self.index = 0
+        self.image = self.image_list[self.index]
+        self.rect = self.image.get_rect(center=center)
+        self.life = 30  # 爆発時間
+        
+    def update(self, screen: pg.Surface):
+        self.life -= 1
+        self.life -= 1
+        if self.life > 0:
+            self.index = (self.index + 1) % len(self.image_list)
+            self.image = self.image_list[self.index]
             
         
 
@@ -151,6 +181,9 @@ def main():
     #bomインスタンスがNUM個並んだリスト
     bombs = [Bomb() for _ in range(NUM_OF_BOMBS)]
     beam = None
+    bomb_rect = pg.Rect(100, 100, 50, 50)  #爆弾のrect
+    beam_rect = pg.Rect(120, 120, 30, 30)  #ビーム
+    explosions = pg.sprite.Group()
 
     clock = pg.time.Clock()
     tmr = 0
@@ -174,6 +207,7 @@ def main():
         for i, bomb in enumerate(bombs):    
             if beam is not None and beam.rct.colliderect(bomb.rct):
                 beam = None
+                explosions.add(Explosion(bomb.rct.center)) #爆発の追加
                 bombs[i] = None
                 bird.change_img(6, screen)
 
@@ -185,6 +219,8 @@ def main():
             bomb.update(screen)
         if beam is not None:
             beam.update(screen)
+        explosions.update(screen)
+        explosions.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
