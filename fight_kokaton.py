@@ -140,7 +140,30 @@ class Beam:
     def update(self, screen: pg.Surface):
         self.rct.move_ip(self.vx, self.vy)
         screen.blit(self.img, self.rct)
-            
+
+class Explosion(pg.sprite.Sprite):
+    def __init__(self,center): 
+        super().__init__()
+        self.image_list = [pg.image.load("ex03/fig/explosion.gif"),
+                           pg.image.load("ex03/fig/explosion.gif").convert()  # flipした画像を追加
+                           ]
+        self.image_list[1] = pg.transform.flip(self.image_list[1], True, False)
+        self.index = 0
+        self.image = self.image_list[self.index]
+        self.rect = self.image.get_rect(center=center)
+        self.life = 30  # 爆発時間
+        
+    def update(self, screen: pg.Surface):
+        self.life -= 1
+        self.life -= 1
+        if self.life > 0:
+            self.index = (self.index + 1) % len(self.image_list)
+            self.image = self.image_list[self.index]
+        
+        
+        
+        
+        
         
 
 def main():
@@ -151,6 +174,9 @@ def main():
     #bomインスタンスがNUM個並んだリスト
     bombs = [Bomb() for _ in range(NUM_OF_BOMBS)]
     beam = None
+    bomb_rect = pg.Rect(100, 100, 50, 50)  #爆弾のrect
+    beam_rect = pg.Rect(120, 120, 30, 30)  #ビーム
+    explosions = pg.sprite.Group()
 
     clock = pg.time.Clock()
     tmr = 0
@@ -158,9 +184,9 @@ def main():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
-            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:#スペースキーが押されたら
-                beam = Beam(bird)  #ビームインスタンスの生成
-        
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:  # スペースキーが押されたら
+                beam = Beam(bird)  # ビームインスタンスの生成
+
         screen.blit(bg_img, [0, 0])
 
         for bomb in bombs:
@@ -170,10 +196,11 @@ def main():
                 pg.display.update()
                 time.sleep(1)
                 return
-            
+
         for i, bomb in enumerate(bombs):    
             if beam is not None and beam.rct.colliderect(bomb.rct):
                 beam = None
+                explosions.add(Explosion(bomb.rct.center))  # 爆発を追加
                 bombs[i] = None
                 bird.change_img(6, screen)
 
@@ -185,10 +212,14 @@ def main():
             bomb.update(screen)
         if beam is not None:
             beam.update(screen)
+
+        # 爆発の更新と描画
+        explosions.update(screen)
+        explosions.draw(screen)
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
 
 if __name__ == "__main__":
     pg.init()
